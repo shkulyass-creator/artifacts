@@ -122,14 +122,15 @@ caption{caption-side:bottom;text-align:left;font-size:11px;color:var(--ink3);pad
   .sheet{border:0;padding:0;max-width:none}
   .kpi{cursor:default}
 }
-.pie{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px;align-items:center}
+.pie{display:grid;grid-template-columns:1fr;gap:10px;justify-items:center}
+.pie>div{width:100%}
 @media (max-width:420px){.pie{grid-template-columns:1fr;justify-items:center}}
-.pie svg{width:132px;height:132px;display:block}
+.pie svg{width:150px;height:150px;display:block}
 .pie .ctr1{font-size:15px;font-weight:700;fill:var(--ink)}
 .pie .ctr2{font-size:10px;fill:var(--ink3)}
 .pie table td{padding:4px 4px;font-size:12px}
 .pie td.pp{color:var(--ink3);width:44px}
-.pie table td:first-child{white-space:nowrap}
+.pie table td:first-child{white-space:normal}
 .pie table td:first-child{padding-left:0}
 .pie i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
 .pie tr[data-i]{cursor:default}
