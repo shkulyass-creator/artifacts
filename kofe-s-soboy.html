@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Одностраничник «Кофе с собой» — калькулятор на основе ФЭМ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f2ee; --surface:#fcfcfb; --card:#fff; --line:#e6e2da; --line2:#f0ede7;
+  --ink:#141210; --ink2:#55524c; --ink3:#8b877f;
+  --brand:#5b3a29; --brand2:#8a5a3c; --brandSoft:#f6efe8; --brandLine:#ead9cb;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --good:#0ca30c; --goodSoft:#e9f6e9; --warn:#fab219; --warnSoft:#fff6df; --crit:#d03b3b; --critSoft:#fbeaea;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,Calibri,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+.app{display:grid;grid-template-columns:372px minmax(0,1fr);gap:20px;max-width:1380px;margin:0 auto;padding:20px}
+@media (max-width:1020px){.app{grid-template-columns:minmax(0,1fr);padding:12px}}
+.sheet,.grid2>div{min-width:0}
+
+/* ---------- форма ---------- */
+.form{background:var(--card);border:1px solid var(--line);border-radius:14px;align-self:start;position:sticky;top:20px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
+@media (max-width:1020px){.form{position:static;max-height:none}}
+.fhead{padding:16px 18px 12px;border-bottom:1px solid var(--line2)}
+.fhead h1{font-size:16px;margin:0 0 4px}
+.fhead p{margin:0;color:var(--ink2);font-size:12.5px}
+.fbody{overflow:auto;padding:4px 18px 8px}
+.ffoot{padding:12px 18px;border-top:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fdfcfa}
+.ffoot .cnt{font-size:12.5px;color:var(--ink2)}
+.sec{padding:14px 0 6px;border-bottom:1px solid var(--line2)}
+.sec:last-child{border-bottom:0}
+.sec h2{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--brand2);margin:0 0 8px;font-weight:600}
+.sec h2 b{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--brandSoft);color:var(--brand);align-items:center;justify-content:center;font-size:11px;letter-spacing:0}
+.f{margin:8px 0 10px}
+.f .lab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
+.f label{font-size:13px;font-weight:500}
+.f .hint{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.rst{border:0;background:none;color:var(--brand2);font-size:11.5px;padding:0;cursor:pointer;visibility:hidden;white-space:nowrap}
+.f.changed .rst{visibility:visible}
+.rst:hover{text-decoration:underline}
+.inp{position:relative;display:flex;align-items:center}
+.inp input,.inp select{width:100%;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink);font-variant-numeric:tabular-nums}
+.inp input{text-align:right;padding-right:calc(10px + var(--u,0px))}
+.inp .u{position:absolute;right:10px;color:var(--ink3);font-size:12.5px;pointer-events:none}
+.inp input:focus,.inp select:focus{outline:2px solid var(--brand2);outline-offset:-1px;border-color:transparent}
+.f.changed .inp input,.f.changed .inp select{background:#fffaeb;border-color:#ecd892}
+.pair{display:grid;grid-template-columns:84px 1fr;gap:8px}
+.pair2{display:grid;grid-template-columns:1.3fr 1fr;gap:8px}
+input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--brand);height:18px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line2);border-radius:9px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:7px 6px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.auto{background:var(--brandSoft);border:1px solid var(--brandLine);border-radius:8px;padding:9px 11px;font-size:12px;color:var(--ink2);margin:4px 0 8px}
+.auto b{color:var(--ink);font-weight:600}
+button.btn{font:inherit;font-size:13px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--brand);background:var(--brand);color:#fff;cursor:pointer}
+button.btn:disabled{background:#fff;color:var(--ink3);border-color:var(--line);cursor:default}
+
+/* ---------- лист ---------- */
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:30px 34px;max-width:920px;width:100%;justify-self:center}
+@media (max-width:640px){.sheet{padding:18px 16px}.hdr{flex-direction:column}.hdr .side{flex-direction:row;align-items:center;justify-content:space-between;width:100%}.hdr h2{font-size:20px}p.about{text-align:left}}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:14px;border-bottom:2px solid var(--brand);margin-bottom:16px}
+.kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand2);font-weight:600}
+.hdr h2{font-size:23px;margin:5px 0 5px;line-height:1.2;letter-spacing:-.01em}
+.hdr .meta{color:var(--ink2);font-size:13px}
+.hdr .side{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.brandmark{font-size:13px;font-weight:700;color:var(--brand)}
+.verdict{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:999px;text-decoration:none;white-space:nowrap}
+.verdict i{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:10px;color:#fff}
+.verdict.good{background:var(--goodSoft);color:#0b6d0b}.verdict.good i{background:var(--good)}
+.verdict.warn{background:var(--warnSoft);color:#7a5200}.verdict.warn i{background:var(--warn);color:#3b2a00}
+.verdict.crit{background:var(--critSoft);color:#9b2525}.verdict.crit i{background:var(--crit)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:var(--r);padding:11px 13px 10px;background:var(--surface);cursor:help;position:relative}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.015em;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi.sm .v{font-size:17px}
+.kpi .l{font-size:12px;color:var(--ink2);margin-top:2px}
+.kpi .d{font-size:11.5px;margin-top:5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.kpi .d .up{color:#0b6d0b}.kpi .d .dn{color:#b23030}
+.kpi.hero{background:var(--brandSoft);border-color:var(--brandLine)}
+.kpi.flag{border-color:#efb0b0;background:#fff8f8}
+.blk{margin:20px 0 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+h3{font-size:12.5px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.06em;color:var(--brand);font-weight:700}
+h3 span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink3);font-size:12px;margin-left:4px}
+p.about{margin:0;text-align:justify;text-indent:1.5em}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:12.5px}
+th,td{padding:5px 7px;border-bottom:1px solid var(--line2);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;padding-left:0}
+thead th{font-weight:600;color:var(--ink2);border-bottom:1px solid var(--line);font-size:12px}
+tr.tot td{font-weight:700;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+tr.sub td{color:var(--ink2)}
+td.hl,th.hl{background:#faf6f1}
+caption{caption-side:bottom;text-align:left;font-size:11px;color:var(--ink3);padding-top:5px}
+.bar{display:flex;height:12px;border-radius:4px;overflow:hidden;gap:2px;margin:2px 0 8px}
+.bar span{display:block;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax{font-size:10.5px;fill:var(--ink3)}
+.chart .gl{stroke:var(--line2)}
+.chart .dl{font-size:10.5px;fill:var(--ink2);font-weight:600}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.09);max-width:280px;display:none;z-index:9;line-height:1.4}
+.tip b{display:block;margin-bottom:2px}
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px}
+.checks .ic{flex:0 0 18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-top:1px}
+.ic.good{background:var(--good)}.ic.warn{background:var(--warn);color:#3b2a00}.ic.crit{background:var(--crit)}
+.checks small{display:block;color:var(--ink2);font-size:12px;margin-top:1px}
+.foot{margin-top:22px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3);display:flex;justify-content:space-between;gap:16px}
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  body{background:#fff}
+  .form,.tip{display:none!important}
+  .app{display:block;padding:0}
+  .sheet{border:0;padding:0;max-width:none}
+  .kpi{cursor:default}
+}
+.pie{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px;align-items:center}
+@media (max-width:420px){.pie{grid-template-columns:1fr;justify-items:center}}
+.pie svg{width:132px;height:132px;display:block}
+.pie .ctr1{font-size:15px;font-weight:700;fill:var(--ink)}
+.pie .ctr2{font-size:10px;fill:var(--ink3)}
+.pie table td{padding:4px 4px;font-size:12px}
+.pie td.pp{color:var(--ink3);width:44px}
+.pie table td:first-child{white-space:nowrap}
+.pie table td:first-child{padding-left:0}
+.pie i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+.pie tr[data-i]{cursor:default}
+.pie tr.on td{background:#faf6f1}
+.pie path.sl{transition:opacity .15s}
+.pie svg.dim path.sl{opacity:.35}.pie svg.dim path.sl.on{opacity:1}
+.kpis.cap{grid-template-columns:repeat(4,1fr)}
+table.fem{border:1px solid #d9d6cf}
+table.fem th,table.fem td{border-bottom:1px solid rgba(0,0,0,.06);padding:6px 8px}
+table.fem thead th{background:#203864;color:#fff;font-weight:700;border-bottom:0}
+table.fem thead th:first-child{padding-left:8px}
+table.fem td:first-child{padding-left:8px}
+table.fem tr.b td{font-weight:700}
+.fh1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hideBtn{border:1px solid var(--line);background:#fff;border-radius:7px;font:inherit;font-size:12px;color:var(--ink2);padding:4px 9px;cursor:pointer;white-space:nowrap}
+.hideBtn:hover{border-color:var(--brand2);color:var(--brand)}
+.showBtn{display:none;position:fixed;left:0;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;z-index:8;border:1px solid var(--brand);border-left:0;background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;padding:14px 8px;border-radius:9px 0 0 9px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.app.collapsed{grid-template-columns:minmax(0,1fr)}
+.app.collapsed .form{display:none}
+.app.collapsed ~ .showBtn{display:block}
+@media (max-width:1020px){.showBtn{writing-mode:horizontal-tb;transform:none;top:auto;bottom:16px;left:16px;border-radius:9px;border-left:1px solid var(--brand)}}
+@media print{.showBtn{display:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <form class="form" id="form" autocomplete="off" onsubmit="return false">
+    <div class="fhead">
+      <div class="fh1"><h1>Вводные проекта</h1><button type="button" class="hideBtn" id="hideForm" title="Свернуть панель">‹ Свернуть</button></div>
+      <p>Меняйте то, что знаете о своей точке. Ассортимент, нормы расхода и график освоения взяты из типовой модели и в форме не участвуют.</p>
+    </div>
+    <div class="fbody" id="fbody"></div>
+    <div class="ffoot">
+      <span class="cnt" id="cnt">Все значения как в модели</span>
+      <button type="button" class="btn" id="reset" disabled>Сбросить все</button>
+    </div>
+  </form>
+
+  <main class="sheet" id="sheet">
+    <div class="hdr">
+      <div>
+        <div class="kicker">Инвестиционный одностраничник</div>
+        <h2 id="projTitle"></h2>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="side">
+        <div class="brandmark">shop.business-plans.kz</div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpiMain"></div>
+    <div class="kpis" id="kpiSec"></div>
+
+    <div class="blk">
+      <h3>О проекте</h3>
+      <p class="about" id="about"></p>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <h3>Инвестиции <span>тенге</span></h3>
+        <div class="pie" id="pCapex"></div>
+      </div>
+      <div>
+        <h3>Источники финансирования <span>тенге</span></h3>
+        <div class="pie" id="pFin"></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <h3>Стоимость капитала</h3>
+      <div class="kpis" id="kpiCap"></div>
+    </div>
+
+    <div class="blk">
+      <h3>Прогнозный отчет о прибылях и убытках <span>тенге</span></h3>
+      <div class="tw"><table id="tPnl"></table></div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <h3>Выручка и чистая прибыль <span>млн тенге</span></h3>
+        <div class="leg"><span><i style="background:var(--s1)"></i>Выручка</span><span><i style="background:var(--s2)"></i>Чистая прибыль</span></div>
+        <div class="chart" id="cYears"></div>
+      </div>
+      <div>
+        <h3>Накопленный денежный поток <span>млн тенге</span></h3>
+        <div class="leg"><span><i style="background:var(--s3)"></i>Свободный поток нарастающим итогом</span></div>
+        <div class="chart" id="cCum"></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <h3>Точка безубыточности <span>средний месяц на режиме, до амортизации и процентов</span></h3>
+      <div class="kpis" id="kpiBE"></div>
+      <div class="leg"><span><i style="background:var(--s1)"></i>Выручка</span><span><i style="background:var(--s2)"></i>Совокупные расходы</span><span><i style="background:var(--ink3)"></i>Постоянные расходы</span></div>
+      <div class="chart" id="cBE"></div>
+    </div>
+
+    <div class="blk">
+      <h3>Экономика одного чека</h3>
+      <table id="tUnit" class="fem"></table>
+    </div>
+  </main>
+</div>
+<button type="button" class="showBtn" id="showForm" title="Показать вводные">› Вводные данные</button>
+<div class="tip" id="tip"></div>
+<script>
+// Расчетное ядро одностраничника «Кофе с собой».
+// Повторяет логику ФЭМ (помесячная ось t = 0..60, годовые ДДП/показатели).
+(function (root) {
+  const MONTHS = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+  // Неизменяемые параметры шаблона (из ФЭМ «Кофе с собой»)
+  const T = {
+    groups: [
+      { name: 'Кофе классический', mix: 0.40, price: 1100, cost: 386.25 },
+      { name: 'Кофе авторский',    mix: 0.14, price: 1500, cost: 515 },
+      { name: 'Горячие напитки',   mix: 0.10, price: 900,  cost: 200.85 },
+      { name: 'Холодные напитки',  mix: 0.08, price: 1300, cost: 415.376 },
+      { name: 'Выпечка и десерты', mix: 0.18, price: 800,  cost: 511.92 },
+      { name: 'Сэндвичи и снеки',  mix: 0.10, price: 1400, cost: 862.4 }
+    ],
+    season: [0.85,0.9,0.95,0.95,0.9,0.8,0.75,0.8,1,1,1,0.95],
+    firstMonthLoad: 0.6,
+    acquiring: 0.011,
+    snrRate: 0.04,
+    payrollTax: 0.43,
+    medCheck: 10000, medPerYear: 2,
+    amortYears: { equip: 8, it: 5, smr: 5, docs: 5 },
+    itShare: 300000 / 4620000,
+    prepMonths: 2,
+    stockMonths: 0.25,
+    reserveMonths: 1,
+    leaseDown: 0.2,
+    leaseStartT: 1, leaseTermDelta: -1, // лизинг на 1 мес. позже и на 1 мес. короче займа
+    // график освоения: [t=0, t=1]
+    sched: { docs: [0.5,0.5], smr: [0.6,0.4], equip: [0,1], prep: [0.5,0.5], stock: [0,1] },
+    ke: { rf: 0.18, beta: 0.85, mrp: 0.063, country: 0, specific: 0.035, small: 0.045 },
+    snrLimitYear: 189e6,
+    horizon: 60
+  };
+
+  const DEFAULTS = {
+    projectName: 'Кофейная точка формата «кофе с собой»',
+    launchYear: 2027, launchMonth: 1,           // первый операционный месяц
+    area: 20, rent: 10000,
+    checks: 130, avgCheck: 0, rampMonths: 9, weekendLoad: 0.75,
+    costPct: 0,                                   // 0 = из шаблона
+    managers: 1, managerSalary: 300000,
+    baristas: 3, baristaSalary: 220000,
+    otherFixed: 375000,
+    smr: 1370000, equipment: 4620000, docs: 390000,
+    scheme: 'debt', rate: 0.126, loanTerm: 60, grace: 6
+  };
+
+  const itemsPerCheck = 1.3;
+  const basePosPrice = T.groups.reduce((s,g)=>s+g.mix*g.price,0);
+  const basePosCost  = T.groups.reduce((s,g)=>s+g.mix*g.cost,0);
+  DEFAULTS.avgCheck = Math.round(basePosPrice*itemsPerCheck*10)/10;
+  DEFAULTS.costPct = basePosCost/basePosPrice;
+
+  function daysIn(y,m){ // m 1..12 → будни, выходные
+    const n = new Date(y,m,0).getDate(); let wd=0, we=0;
+    for(let d=1; d<=n; d++){ const w=new Date(y,m-1,d).getDay(); (w===0||w===6)?we++:wd++; }
+    return [wd,we];
+  }
+  const roundup = (x,step)=>Math.ceil(x/step - 1e-9)*step;
+
+  function irr(cf){
+    const npv = r => cf.reduce((s,v,i)=>s+v/Math.pow(1+r,i),0);
+    let lo=-0.99, hi=10;
+    if (npv(lo)*npv(hi) > 0) return null;
+    for(let i=0;i<200;i++){ const mid=(lo+hi)/2; (npv(lo)*npv(mid)<=0)?hi=mid:lo=mid; }
+    return (lo+hi)/2;
+  }
+  function mirr(cf, fr, rr){
+    const n=cf.length-1; let pv=0, fv=0;
+    cf.forEach((v,i)=>{ if(v<0) pv+=v/Math.pow(1+fr,i); else fv+=v*Math.pow(1+rr,n-i); });
+    if (pv===0||fv===0) return null;
+    return Math.pow(fv/-pv,1/n)-1;
+  }
+
+  function compute(inp){
+    const p = Object.assign({}, DEFAULTS, inp||{});
+    const H = T.horizon;
+    // календарь: t=0 = старт проекта, запуск на t = prepMonths
+    const L = T.prepMonths;
+    let sy = p.launchYear, sm = p.launchMonth - L; while (sm<1){ sm+=12; sy--; }
+    const cal = [];
+    for(let t=0;t<=H;t++){ let m=sm+t, y=sy; while(m>12){m-=12;y++;} cal.push({t,y,m}); }
+    const years = [...new Set(cal.map(c=>c.y))];
+
+    const priceK = p.avgCheck / (basePosPrice*itemsPerCheck);
+    const groups = T.groups.map(g=>({ ...g, price: g.price*priceK, cost: g.price*priceK*p.costPct }));
+    const posPerWeekday = p.checks*itemsPerCheck;
+
+    // штат и постоянные
+    const headcount = p.managers + p.baristas;
+    const fot = (p.managers*p.managerSalary + p.baristas*p.baristaSalary)*(1+T.payrollTax);
+    const rentM = p.area*p.rent;
+    const med = headcount*T.medCheck*T.medPerYear/12;
+    const fixedNoFot = rentM + p.otherFixed + med;
+    const fixedM = fixedNoFot + fot;
+
+    // CAPEX
+    const equipOnly = p.equipment*(1-T.itShare), itOnly = p.equipment*T.itShare;
+    const prep = rentM*L;
+    // запас: 0,25 закупа первого операционного месяца (без эквайринга)
+    const launchCal = cal[L];
+    const [wd0,we0] = daysIn(launchCal.y, launchCal.m);
+    const days0 = wd0 + we0*p.weekendLoad;
+    const firstVarRaw = groups.reduce((s,g)=>s+posPerWeekday*g.mix*days0*T.season[launchCal.m-1]*T.firstMonthLoad*g.cost,0);
+    const stock = roundup(firstVarRaw*T.stockMonths, 1000);
+    const reserve = roundup(fixedM*T.reserveMonths, 1000);
+    const capex = { docs:p.docs, smr:p.smr, equip:p.equipment, prep, stock, reserve };
+    const invest = p.docs + p.smr + p.equipment + prep + stock + reserve;
+
+    let own, loan, lease;
+    if (p.scheme==='debt'){
+      lease = p.equipment*(1-T.leaseDown);
+      loan = p.smr + reserve;
+      own = invest - loan - lease;
+    } else { lease=0; loan=0; own=invest; }
+
+    // WACC
+    const ke = T.ke.rf + T.ke.beta*T.ke.mrp + T.ke.country + T.ke.specific + T.ke.small;
+    const D = loan+lease, E = own;
+    const wacc = p.rate*D/(D+E) + ke*E/(D+E);
+
+    // график погашения (годовой, как в ФЭМ)
+    function schedule(P, start, term, grace){
+      const res = {}; let bal = P, prevEnd = P;
+      years.forEach((y,i)=>{
+        const ts = cal.filter(c=>c.y===y).map(c=>c.t);
+        const nInt = ts.filter(t=>t>=start && t<start+term).length;
+        const nPay = ts.filter(t=>t>=start+grace && t<start+term).length;
+        const pay = P/(term-grace)*nPay;
+        const end = bal - pay;
+        const intr = (i===0 ? (P+end) : (prevEnd+end))/2*p.rate*nInt/12;
+        res[y] = { pay, intr, nInt, nPay, end }; prevEnd = end; bal = end;
+      });
+      return res;
+    }
+    const loanS = schedule(loan, 0, p.loanTerm, p.grace);
+    const leaseS = schedule(lease, T.leaseStartT, p.loanTerm+T.leaseTermDelta, p.grace);
+
+    // амортизация в месяц
+    const amortM = equipOnly/T.amortYears.equip/12 + itOnly/T.amortYears.it/12 + (p.smr+prep)/T.amortYears.smr/12 + p.docs/T.amortYears.docs/12;
+
+    // помесячный расчет
+    const M = cal.map(c=>{
+      const op = c.t>=L;
+      const [wd,we] = daysIn(c.y,c.m);
+      const days = wd + we*p.weekendLoad;
+      const ramp = !op ? 0 : (p.rampMonths<=1 ? 1 : Math.min(1, T.firstMonthLoad + (1-T.firstMonthLoad)*(c.t-L)/(p.rampMonths-1)));
+      const k = posPerWeekday*days*T.season[c.m-1]*ramp;
+      let rev=0, raw=0;
+      groups.forEach(g=>{ rev += k*g.mix*g.price; raw += k*g.mix*g.cost; });
+      const varc = raw + rev*T.acquiring;
+      const fixed = op ? fixedM + amortM : 0;
+      const li = loanS[c.y], le = leaseS[c.y];
+      const intr = ((c.t>=0 && c.t<p.loanTerm && li.nInt) ? li.intr/Math.max(1,li.nInt) : 0)
+                 + ((c.t>=T.leaseStartT && c.t<T.leaseStartT+p.loanTerm+T.leaseTermDelta && le.nInt) ? le.intr/Math.max(1,le.nInt) : 0);
+      const tax = rev*T.snrRate;
+      const net = rev - varc - fixed - intr - tax;
+      // ОДДС
+      const opCF = rev - (varc - (c.t===L?stock:0)) - (op?fixedNoFot:0) - (op?fot:0) - intr - tax;
+      const idx = c.t<=1 ? c.t : -1;
+      const invCF = idx<0 ? 0 : -(p.docs*T.sched.docs[idx] + p.smr*T.sched.smr[idx] + p.equipment*T.sched.equip[idx] + prep*T.sched.prep[idx] + stock*T.sched.stock[idx]);
+      const finIn = (c.t===0?own+loan:0) + (c.t===T.leaseStartT?lease:0);
+      const loanPay = (c.t>=p.grace && c.t<p.loanTerm) ? li.pay/Math.max(1,li.nPay) : 0;
+      const leasePay = (c.t>=T.leaseStartT+p.grace && c.t<T.leaseStartT+p.loanTerm+T.leaseTermDelta) ? le.pay/Math.max(1,le.nPay) : 0;
+      const ownBack = c.t===H ? own : 0;
+      const finCF = finIn - loanPay - leasePay - ownBack;
+      const fcf = opCF + invCF - (c.t===0 ? reserve : 0);
+      return { ...c, label: MONTHS[c.m-1]+' '+c.y, op, rev, varc, gross: rev-varc, fixed, opInc: rev-varc-fixed, intr, tax, net, opCF, invCF, finCF, cashFlow: opCF+invCF+finCF, fcf };
+    });
+    let cash=0, cum=0, dcum=0, pbpT=null, dpbpT=null, prevCum=0, prevD=0;
+    M.forEach(r=>{
+      cash += r.cashFlow; r.cash = cash;
+      r.df = 1/Math.pow(1+wacc, r.t/12); r.dfcf = r.fcf*r.df;
+      cum += r.fcf; dcum += r.dfcf; r.cum=cum; r.dcum=dcum;
+      if (pbpT===null && cum>=0 && prevCum<0) pbpT = r.t+1-cum/r.fcf;
+      if (dpbpT===null && dcum>=0 && prevD<0) dpbpT = r.t+1-dcum/r.dfcf;
+      prevCum=cum; prevD=dcum;
+    });
+
+    const Y = years.map(y=>{
+      const rs = M.filter(r=>r.y===y), s = k=>rs.reduce((a,r)=>a+r[k],0);
+      return { y, months: rs.filter(r=>r.op).length, rev:s('rev'), varc:s('varc'), gross:s('gross'), fixed:s('fixed'), opInc:s('opInc'), intr:s('intr'), tax:s('tax'), net:s('net'), fcf:s('fcf'), dfcf:s('dfcf') };
+    });
+    const npv = M.reduce((a,r)=>a+r.dfcf,0);
+    const preInv = -M.filter(r=>r.t<L).reduce((a,r)=>a+r.dfcf,0);
+    const annual = Y.map(y=>y.fcf);
+    const fullYears = Y.filter(y=>y.months===12);
+    const steady = fullYears[1] || fullYears[0];
+
+    // безубыточность в чеках будничного дня (на режиме, средний месяц)
+    const avgDays = 21.7 + 8.7*p.weekendLoad; const avgSeason = T.season.reduce((a,b)=>a+b,0)/12;
+    const marginPerCheck = p.avgCheck*(1 - p.costPct - T.acquiring - T.snrRate);
+    const beChecks = fixedM/(marginPerCheck*avgDays*avgSeason);
+
+    return {
+      p, T, groups, cal: M, years: Y, capex, invest, own, loan, lease, wacc, ke,
+      fot, fixedM, fixedNoFot, rentM, amortM, headcount, launchLabel: MONTHS[p.launchMonth-1]+' '+p.launchYear,
+      startLabel: MONTHS[cal[0].m-1]+' '+cal[0].y,
+      kpi: {
+        npv, irr: irr(annual), mirr: mirr(annual, wacc, wacc), pi: preInv>0 ? 1+npv/preInv : null,
+        pbp: pbpT===null?null:(pbpT-L)/12, dpbp: dpbpT===null?null:(dpbpT-L)/12,
+        minCash: Math.min(...M.map(r=>r.cash)), beChecks, marginPerCheck, monthFactor: avgDays*avgSeason,
+        steadyYear: steady && steady.y, steadyRev: steady && steady.rev, steadyNet: steady && steady.net,
+        netMargin: steady && steady.rev ? steady.net/steady.rev : null,
+        maxYearRev: Math.max(...Y.map(y=>y.rev/(y.months||1)*12))
+      }
+    };
+  }
+  const api = { compute, DEFAULTS, T, MONTHS };
+  if (typeof module!=='undefined') module.exports = api; else root.CoffeeEngine = api;
+})(this);
+</script><script>
+(function(){
+  const E = CoffeeEngine, D = E.DEFAULTS, $ = id => document.getElementById(id);
+  const nf0 = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
+  const nf1 = new Intl.NumberFormat('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const nf2 = new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const nfIn = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2});
+  const t0 = x => { const v=Math.round(x); return nf0.format(v===0?0:v); };
+  const mln = x => nf1.format(x/1e6)+' млн';
+  const pc = (x,d=1) => x==null ? 'н/д' : (d===1?nf1:nf2).format(x*100)+'%';
+  const yrs = x => x==null ? 'не окупается' : nf2.format(x)+' года';
+  const MONTHS = E.MONTHS;
+  const PREP = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
+  const parseIn = s => parseFloat(String(s).replace(/[\s  ]/g,'').replace(',','.'));
+
+  // ---------- описание формы ----------
+  const SECTIONS = [
+    { title:'Запуск и помещение', fields:[
+      { id:'launch', type:'launch', label:'Месяц открытия', hint:'Подготовка начинается за два месяца: ремонт, оборудование, аренда до открытия.' },
+      { id:'area', label:'Площадь', unit:'м²', hint:'Общая площадь арендуемого помещения.' },
+      { id:'rent', label:'Аренда', unit:'тенге/м²', step:500 }
+    ]},
+    { title:'Продажи', fields:[
+      { id:'checks', label:'Чеков в будний день', unit:'чеков', range:[40,300,5], hint:'На плановой загрузке. Выходные считаются отдельно.' },
+      { id:'avgCheck', label:'Средний чек', unit:'тенге', range:[800,3000,10], hint:'Цены всех групп меняются пропорционально.' },
+      { id:'costPct', label:'Себестоимость', unit:'% цены', pct:true, range:[20,60,0.5], hint:'Сырье и упаковка вместе со списаниями.' },
+      { id:'weekendLoad', label:'Поток в выходной', unit:'% будня', pct:true },
+      { id:'rampMonths', label:'Выход на план', unit:'мес.', hint:'Первый месяц дает 60% плана, дальше рост равными шагами.' }
+    ]},
+    { title:'Персонал', fields:[
+      { id:'mgr', type:'pair', a:'managers', b:'managerSalary', label:'Управляющий', unit:'тенге' },
+      { id:'bar', type:'pair', a:'baristas', b:'baristaSalary', label:'Бариста-кассиры', unit:'тенге', hint:'Количество и оклад на руки. Налоги и отчисления 43% добавляются сверху.' }
+    ]},
+    { title:'Прочие расходы', fields:[
+      { id:'otherFixed', label:'В месяц', unit:'тенге', hint:'Коммунальные услуги, маркетинг, связь, обслуживание оборудования, бухгалтерия. Без аренды и зарплат.' }
+    ]},
+    { title:'Инвестиции', fields:[
+      { id:'smr', label:'Ремонт и отделка', unit:'тенге' },
+      { id:'equipment', label:'Оборудование, мебель, ИТ', unit:'тенге' },
+      { id:'docs', label:'Разрешения и документы', unit:'тенге' },
+      { id:'autoCapex', type:'note' }
+    ]},
+    { title:'Финансирование', fields:[
+      { id:'scheme', type:'seg', label:'Схема', options:[['debt','Займ и лизинг'],['own','Свои средства']] },
+      { id:'rate', label:'Ставка', unit:'% годовых', pct:true, debt:true },
+      { id:'loanTerm', label:'Срок займа', unit:'мес.', debt:true },
+      { id:'grace', label:'Отсрочка по основному долгу', unit:'мес.', debt:true }
+    ]}
+  ];
+  const NUM = []; // числовые id
+  const META = {};
+
+  const disp = (id,v) => META[id] && META[id].pct ? +(v*100).toFixed(2) : (id==='avgCheck' ? Math.round(v) : +(+v).toFixed(2));
+  const defShown = id => id==='launch' ? MONTHS[D.launchMonth-1]+' '+D.launchYear
+    : id==='scheme' ? 'займ и лизинг' : nfIn.format(disp(id,D[id])) + (META[id]&&META[id].unit ? ' '+META[id].unit : '');
+
+  function inputHTML(id, unit){
+    return `<div class="inp"><input id="${id}" type="text" inputmode="decimal" style="--u:${unit?(unit.length*6.6+6):0}px">${unit?`<span class="u">${unit}</span>`:''}</div>`;
+  }
+  function build(){
+    let h='';
+    SECTIONS.forEach((s,i)=>{
+      h+=`<div class="sec"><h2><b>${i+1}</b>${s.title}</h2>`;
+      s.fields.forEach(f=>{
+        if (f.type==='note'){ h+=`<div class="auto" id="${f.id}"></div>`; return; }
+        h+=`<div class="f${f.debt?' debtOnly':''}" data-f="${f.id}"><div class="lab"><label for="${f.type==='pair'?f.a:f.id}">${f.label}</label><button type="button" class="rst" data-reset="${f.id}"></button></div>`;
+        if (f.type==='launch'){
+          h+=`<div class="pair2"><div class="inp"><select id="launchMonth">${MONTHS.map((m,j)=>`<option value="${j+1}">${m[0].toUpperCase()+m.slice(1)}</option>`).join('')}</select></div><div class="inp"><select id="launchYear">${[2026,2027,2028,2029].map(y=>`<option>${y}</option>`).join('')}</select></div></div>`;
+        } else if (f.type==='pair'){
+          META[f.a]={unit:'чел.'}; META[f.b]={unit:f.unit}; NUM.push(f.a,f.b);
+          h+=`<div class="pair">${inputHTML(f.a,'чел.')}${inputHTML(f.b,f.unit)}</div>`;
+        } else if (f.type==='seg'){
+          h+=`<div class="seg" id="scheme">${f.options.map(o=>`<button type="button" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+        } else {
+          META[f.id]=f; NUM.push(f.id);
+          h+=inputHTML(f.id,f.unit);
+          if (f.range) h+=`<input type="range" id="${f.id}_r" min="${f.range[0]}" max="${f.range[1]}" step="${f.range[2]}" aria-label="${f.label}">`;
+        }
+        if (f.hint) h+=`<div class="hint">${f.hint}</div>`;
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+    });
+    $('fbody').innerHTML = h;
+  }
+  build();
+  document.querySelectorAll('.inp .u').forEach(u=>{ u.previousElementSibling.style.paddingRight = (u.offsetWidth+16)+'px'; });
+
+  let scheme = D.scheme;
+  function fill(p){
+    NUM.forEach(id=>{ const v=disp(id,p[id]); $(id).value = nfIn.format(v); const r=$(id+'_r'); if(r) r.value=v; });
+    $('launchMonth').value = p.launchMonth; $('launchYear').value = p.launchYear; scheme = p.scheme;
+  }
+  function read(){
+    const p = {};
+    NUM.forEach(id=>{
+      let v = parseIn($(id).value);
+      if (!isFinite(v)) v = disp(id,D[id]);
+      const pct = META[id].pct;
+      if (id==='avgCheck' && Math.round(D.avgCheck)===v) v = D.avgCheck;
+      v = pct ? v/100 : v;
+      if (pct && Math.abs(v-D[id])<0.00005) v = D[id];
+      p[id]=v;
+    });
+    p.launchMonth=+$('launchMonth').value; p.launchYear=+$('launchYear').value; p.scheme=scheme;
+    return p;
+  }
+  function markChanged(p){
+    let n=0;
+    document.querySelectorAll('.f[data-f]').forEach(el=>{
+      const id=el.dataset.f; let ch;
+      if (id==='launch') ch = p.launchMonth!==D.launchMonth || p.launchYear!==D.launchYear;
+      else if (id==='scheme') ch = p.scheme!==D.scheme;
+      else if (id==='mgr') ch = p.managers!==D.managers || p.managerSalary!==D.managerSalary;
+      else if (id==='bar') ch = p.baristas!==D.baristas || p.baristaSalary!==D.baristaSalary;
+      else ch = Math.abs(p[id]-D[id])>1e-6;
+      el.classList.toggle('changed',ch); if(ch) n++;
+      const b = el.querySelector('.rst');
+      b.textContent = '↺ ' + (id==='mgr' ? `${D.managers} × ${nfIn.format(D.managerSalary)}` : id==='bar' ? `${D.baristas} × ${nfIn.format(D.baristaSalary)}` : defShown(id));
+      b.title = 'Вернуть значение модели';
+    });
+    document.querySelectorAll('#scheme button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.v===p.scheme));
+    document.querySelectorAll('.debtOnly').forEach(e=>e.style.display = p.scheme==='debt'?'':'none');
+    $('cnt').textContent = n ? `Изменено полей: ${n}` : 'Все значения как в модели';
+    $('reset').disabled = !n;
+  }
+
+  // ---------- подсказка ----------
+  const tip = $('tip');
+  function showTip(html, ev){
+    tip.innerHTML = html; tip.style.display='block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = ev.pageX + 14, y = ev.pageY - h - 12;
+    if (x + w > window.scrollX + document.documentElement.clientWidth - 8) x = ev.pageX - w - 14;
+    if (y < window.scrollY + 4) y = ev.pageY + 18;
+    tip.style.left = x+'px'; tip.style.top = y+'px';
+  }
+  const hideTip = ()=>{ tip.style.display='none'; };
+
+  // ---------- графики ----------
+  function niceTicks(min,max,n=5){
+    const span = max-min || 1, step0 = span/n, mag = Math.pow(10,Math.floor(Math.log10(step0)));
+    const step = [1,2,2.5,5,10].map(k=>k*mag).find(s=>span/s<=n) || 10*mag;
+    const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, out=[];
+    for(let v=lo; v<=hi+1e-9; v+=step) out.push(+v.toFixed(10));
+    return out;
+  }
+  function barPath(x,w,a,b,up){
+    const h=Math.max(1,b-a), r=Math.min(4,h/2,w/2);
+    return up ? `M${x},${b}V${a+r}Q${x},${a} ${x+r},${a}H${x+w-r}Q${x+w},${a} ${x+w},${a+r}V${b}Z`
+              : `M${x},${a}V${b-r}Q${x},${b} ${x+r},${b}H${x+w-r}Q${x+w},${b} ${x+w},${b-r}V${a}Z`;
+  }
+  function yearsChart(r){
+    const W=420,H=230,ml=34,mr=4,mt=14,mb=36, el=$('cYears'), ys=r.years;
+    const vals = ys.flatMap(y=>[y.rev/1e6,y.net/1e6]);
+    const ticks = niceTicks(Math.min(0,...vals), Math.max(...vals));
+    const y0=ticks[0], y1=ticks[ticks.length-1], Y = v => mt + (H-mt-mb)*(1-(v-y0)/(y1-y0));
+    const gw=(W-ml-mr)/ys.length, bw=Math.min(22,(gw-16)/2);
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Выручка и чистая прибыль по годам">`;
+    ticks.forEach(t=>{ s+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${Y(t)}" y2="${Y(t)}" ${t===0?'style="stroke:#c9c4b9"':''}/><text class="ax" x="${ml-6}" y="${Y(t)+3.5}" text-anchor="end">${nf0.format(t)}</text>`; });
+    const st = r.kpi.steadyYear;
+    ys.forEach((y,i)=>{
+      const cx = ml+gw*i+gw/2;
+      [[y.rev,'var(--s1)',cx-bw-1],[y.net,'var(--s2)',cx+1]].forEach(([v,c,x])=>{
+        if (Math.abs(v)<1) return;
+        const m=v/1e6; s+=`<path d="${barPath(x,bw,Y(Math.max(0,m)),Y(Math.min(0,m)),m>=0)}" fill="${c}"/>`;
+      });
+      if (y.y===st){ // подпись только у первого полного года на режиме
+        s+=`<text class="dl" x="${cx-bw/2-1}" y="${Y(y.rev/1e6)-4}" text-anchor="middle">${nf1.format(y.rev/1e6)}</text>`;
+        s+=`<text class="dl" x="${cx+bw/2+1}" y="${Y(Math.max(0,y.net/1e6))-4}" text-anchor="middle">${nf1.format(y.net/1e6)}</text>`;
+      }
+      s+=`<rect class="hit" data-i="${i}" x="${ml+gw*i}" y="${mt}" width="${gw}" height="${H-mt-mb}" fill="transparent"/>`;
+      s+=`<text class="ax" x="${cx}" y="${H-mb+15}" text-anchor="middle">${y.y}</text>`;
+      if (y.months<12) s+=`<text class="ax" x="${cx}" y="${H-mb+28}" text-anchor="middle">${y.months? y.months+' мес.' : 'подготовка'}</text>`;
+    });
+    el.innerHTML = s+'</svg>';
+    el.querySelectorAll('.hit').forEach(h=>{
+      h.addEventListener('mousemove',ev=>{ const y=ys[+h.dataset.i]; showTip(`<b>${y.y}${y.months<12?(y.months?', '+y.months+' мес. работы':', подготовка'):''}</b>Выручка ${t0(y.rev)} тенге<br>Чистая прибыль ${t0(y.net)} тенге${y.rev?'<br>Маржа '+pc(y.net/y.rev):''}`,ev); });
+      h.addEventListener('mouseleave',hideTip);
+    });
+  }
+  function cumChart(r){
+    const W=420,H=230,ml=34,mr=40,mt=14,mb=36, el=$('cCum');
+    const pts = r.cal.map(c=>({t:c.t, v:c.cum/1e6, c}));
+    const ticks = niceTicks(Math.min(...pts.map(p=>p.v),0), Math.max(...pts.map(p=>p.v),0));
+    const y0=ticks[0], y1=ticks[ticks.length-1], tmax=pts[pts.length-1].t;
+    const X = t => ml+(W-ml-mr)*t/tmax, Y = v => mt+(H-mt-mb)*(1-(v-y0)/(y1-y0));
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Накопленный денежный поток">`;
+    ticks.forEach(t=>{ s+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${Y(t)}" y2="${Y(t)}" ${t===0?'style="stroke:#c9c4b9"':''}/><text class="ax" x="${ml-6}" y="${Y(t)+3.5}" text-anchor="end">${nf0.format(t)}</text>`; });
+    r.cal.forEach(c=>{ if (c.m===1 && c.t>0) s+=`<text class="ax" x="${X(c.t)}" y="${H-mb+15}" text-anchor="middle">${c.y}</text>`; });
+    const L=r.T.prepMonths;
+    if (r.kpi.pbp!=null){
+      const tp=r.kpi.pbp*12+L, lx=X(tp), right = lx < W-mr-110;
+      s+=`<line x1="${lx}" x2="${lx}" y1="${mt}" y2="${H-mb}" stroke="var(--ink3)" stroke-dasharray="3 3"/>`;
+      s+=`<text class="ax" x="${right?lx+5:lx-5}" y="${mt+2}" text-anchor="${right?'start':'end'}" style="fill:var(--ink2)">окупаемость ${nf2.format(r.kpi.pbp)} года</text>`;
+    }
+    const minP = pts.reduce((a,b)=>b.v<a.v?b:a);
+    s+=`<path d="${pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+','+Y(p.v).toFixed(1)).join('')}" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round"/>`;
+    const last=pts[pts.length-1];
+    s+=`<circle cx="${X(last.t)}" cy="${Y(last.v)}" r="3.5" fill="var(--s3)"/><text class="dl" x="${X(last.t)+6}" y="${Y(last.v)+3.5}">${nf1.format(last.v)}</text>`;
+    s+=`<text class="dl" x="${X(minP.t)}" y="${Y(minP.v)+16 < H-mb-2 ? Y(minP.v)+16 : Y(minP.v)-7}" text-anchor="middle">${nf1.format(minP.v)}</text>`;
+    s+=`<line id="xh" y1="${mt}" y2="${H-mb}" stroke="var(--ink3)" visibility="hidden"/><circle id="xd" r="4" fill="var(--s3)" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
+    s+=`<rect id="cumHit" x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent"/></svg>`;
+    el.innerHTML=s;
+    const svg=el.querySelector('svg'), hit=el.querySelector('#cumHit'), xh=el.querySelector('#xh'), xd=el.querySelector('#xd');
+    hit.addEventListener('mousemove',ev=>{
+      const b=svg.getBoundingClientRect(), xv=(ev.clientX-b.left)*W/b.width;
+      const t=Math.max(0,Math.min(tmax,Math.round((xv-ml)/(W-ml-mr)*tmax))), p=pts[t];
+      xh.setAttribute('x1',X(t)); xh.setAttribute('x2',X(t)); xh.setAttribute('visibility','visible');
+      xd.setAttribute('cx',X(t)); xd.setAttribute('cy',Y(p.v)); xd.setAttribute('visibility','visible');
+      showTip(`<b>${p.c.label[0].toUpperCase()+p.c.label.slice(1)}</b>Поток за месяц ${t0(p.c.fcf)} тенге<br>Нарастающим итогом ${t0(p.c.cum)} тенге`,ev);
+    });
+    hit.addEventListener('mouseleave',()=>{ hideTip(); xh.setAttribute('visibility','hidden'); xd.setAttribute('visibility','hidden'); });
+  }
+
+  function beChart(r,p){
+    const k=r.kpi, W=860,H=260,ml=40,mr=16,mt=14,mb=34, el=$('cBE');
+    const mf=k.monthFactor, vr=p.costPct+r.T.acquiring+r.T.snrRate, F=r.fixedM/1e6;
+    const xmax=Math.ceil(Math.max(p.checks,k.beChecks)*1.5/10)*10;
+    const rev=n=>n*p.avgCheck*mf/1e6, cost=n=>F+rev(n)*vr;
+    const ticks=niceTicks(0, Math.max(rev(xmax),cost(xmax)));
+    const y1=ticks[ticks.length-1], X=n=>ml+(W-ml-mr)*n/xmax, Y=v=>mt+(H-mt-mb)*(1-v/y1);
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="График точки безубыточности">`;
+    ticks.forEach(t=>{ s+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${Y(t)}" y2="${Y(t)}"/><text class="ax" x="${ml-6}" y="${Y(t)+3.5}" text-anchor="end">${nf0.format(t)}</text>`; });
+    niceTicks(0,xmax,10).filter(t=>t<=xmax).forEach(t=>{ s+=`<text class="ax" x="${X(t)}" y="${H-mb+15}" text-anchor="middle">${nf0.format(t)}</text>`; });
+    s+=`<text class="ax" x="${W-mr}" y="${H-mb+29}" text-anchor="end">чеков в будний день</text>`;
+    const be=k.beChecks, by=rev(be);
+    // зоны убытка и прибыли
+    s+=`<path d="M${X(0)},${Y(cost(0))}L${X(be)},${Y(by)}L${X(0)},${Y(0)}Z" fill="#d03b3b" opacity=".07"/>`;
+    s+=`<path d="M${X(be)},${Y(by)}L${X(xmax)},${Y(rev(xmax))}L${X(xmax)},${Y(cost(xmax))}Z" fill="#0ca30c" opacity=".08"/>`;
+    s+=`<line x1="${X(0)}" x2="${X(xmax)}" y1="${Y(F)}" y2="${Y(F)}" stroke="var(--ink3)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    s+=`<line x1="${X(0)}" x2="${X(xmax)}" y1="${Y(cost(0))}" y2="${Y(cost(xmax))}" stroke="var(--s2)" stroke-width="2"/>`;
+    s+=`<line x1="${X(0)}" x2="${X(xmax)}" y1="${Y(0)}" y2="${Y(rev(xmax))}" stroke="var(--s1)" stroke-width="2"/>`;
+    // план
+    s+=`<line x1="${X(p.checks)}" x2="${X(p.checks)}" y1="${mt}" y2="${H-mb}" stroke="var(--ink3)" stroke-dasharray="2 3"/>`;
+    s+=`<text class="ax" x="${X(p.checks)+5}" y="${mt+8}" style="fill:var(--ink2)">план ${nf0.format(p.checks)}</text>`;
+    // точка
+    s+=`<line x1="${X(be)}" x2="${X(be)}" y1="${Y(by)}" y2="${H-mb}" stroke="var(--ink)" stroke-dasharray="2 3"/>`;
+    s+=`<circle cx="${X(be)}" cy="${Y(by)}" r="5.5" fill="#fff" stroke="var(--ink)" stroke-width="2"/>`;
+    s+=`<text class="dl" x="${X(be)-9}" y="${Y(by)-9}" text-anchor="end" style="fill:var(--ink)">${nf0.format(Math.ceil(be))} чеков · ${nf1.format(by)} млн</text>`;
+    s+=`<text class="ax" x="${X(xmax)-4}" y="${Y(F)+14}" text-anchor="end" style="fill:var(--ink2)">постоянные ${nf1.format(F)} млн в месяц</text>`;
+    s+=`<line id="bx" y1="${mt}" y2="${H-mb}" stroke="var(--ink3)" visibility="hidden"/><rect id="beHit" x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent"/></svg>`;
+    el.innerHTML=s;
+    const svg=el.querySelector('svg'), hit=el.querySelector('#beHit'), bx=el.querySelector('#bx');
+    hit.addEventListener('mousemove',ev=>{
+      const b=svg.getBoundingClientRect(), n=Math.max(0,Math.min(xmax,Math.round(((ev.clientX-b.left)*W/b.width-ml)/(W-ml-mr)*xmax)));
+      bx.setAttribute('x1',X(n)); bx.setAttribute('x2',X(n)); bx.setAttribute('visibility','visible');
+      const res=(rev(n)-cost(n))*1e6;
+      showTip(`<b>${nf0.format(n)} чеков в будний день</b>Выручка ${t0(rev(n)*1e6)} тенге в месяц<br>Расходы ${t0(cost(n)*1e6)} тенге<br>${res>=0?'Прибыль':'Убыток'} ${t0(Math.abs(res))} тенге`,ev);
+    });
+    hit.addEventListener('mouseleave',()=>{ hideTip(); bx.setAttribute('visibility','hidden'); });
+  }
+
+  // ---------- круговые диаграммы ----------
+  const PIE_COL=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#6250d6'];
+  function pie(id, items, what){
+    const el=$(id), data=items.filter(d=>d[1]>0.5), tot=data.reduce((a,d)=>a+d[1],0);
+    const R=72, r0=44, C=75;
+    let a0=-Math.PI/2, s=`<svg viewBox="0 0 150 150" role="img" aria-label="${what}">`;
+    const pt=(rad,ang)=>[C+rad*Math.cos(ang), C+rad*Math.sin(ang)];
+    data.forEach((d,i)=>{
+      const f=d[1]/tot, a1=a0+f*2*Math.PI, large=f>0.5?1:0;
+      let path;
+      if (f>0.9999){ path=`M${C},${C-R}A${R},${R} 0 1 1 ${C-0.01},${C-R}L${C-0.01},${C-r0}A${r0},${r0} 0 1 0 ${C},${C-r0}Z`; }
+      else { const [x1,y1]=pt(R,a0),[x2,y2]=pt(R,a1),[x3,y3]=pt(r0,a1),[x4,y4]=pt(r0,a0);
+        path=`M${x1},${y1}A${R},${R} 0 ${large} 1 ${x2},${y2}L${x3},${y3}A${r0},${r0} 0 ${large} 0 ${x4},${y4}Z`; }
+      s+=`<path class="sl" data-i="${i}" d="${path}" fill="${PIE_COL[i]}" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>`;
+      a0=a1;
+    });
+    s+=`<text class="ctr1" x="${C}" y="${C+2}" text-anchor="middle">${nf1.format(tot/1e6)} млн</text><text class="ctr2" x="${C}" y="${C+16}" text-anchor="middle">тенге</text></svg>`;
+    let t=`<table><tbody>`+data.map((d,i)=>`<tr data-i="${i}"><td><i style="background:${PIE_COL[i]}"></i>${d[0]}</td><td>${t0(d[1])}</td><td class="pp">${pc(d[1]/tot)}</td></tr>`).join('')+
+      `<tr class="tot"><td>Итого</td><td>${t0(tot)}</td><td class="pp">100%</td></tr></tbody></table>`;
+    el.innerHTML=s+`<div>${t}</div>`;
+    const svg=el.querySelector('svg');
+    const hl=i=>{ svg.classList.toggle('dim',i!=null); el.querySelectorAll('[data-i]').forEach(n=>n.classList.toggle('on',n.dataset.i==String(i))); };
+    el.querySelectorAll('[data-i]').forEach(n=>{
+      n.addEventListener('mousemove',ev=>{ const d=data[+n.dataset.i]; hl(n.dataset.i); if(n.tagName==='path') showTip(`<b>${d[0]}</b>${t0(d[1])} тенге · ${pc(d[1]/tot)}`,ev); });
+      n.addEventListener('mouseleave',()=>{ hl(null); hideTip(); });
+    });
+  }
+
+  // ---------- карточки показателей ----------
+  const KPI_HELP = {
+    invest:'Все деньги до выхода на поток: ремонт, оборудование, документы, аренда до открытия, стартовый запас и резерв на месяц постоянных расходов.',
+    npv:'Сколько проект зарабатывает сверх стоимости капитала за 60 месяцев, в деньгах сегодняшнего дня.',
+    irr:'Доходность, при которой NPV равен нулю. Считается по годовому потоку, поэтому зависит от месяца открытия.',
+    pbp:'Через сколько лет от открытия накопленный поток возвращает вложения, без дисконтирования.',
+    dpbp:'То же, но с дисконтированием по WACC. Банк смотрит именно на этот срок.',
+    mirr:'Доходность с реинвестированием по WACC, а не по IRR. Реалистичнее IRR при высоких значениях.',
+    pi:'Сколько тенге приведенного потока приходится на тенге вложений.',
+    rev:'Выручка первого полного года на плановой загрузке.',
+    be:'Число чеков в будний день, при котором маржинальный доход покрывает постоянные расходы месяца.',
+    beRev:'Средняя месячная выручка в точке безубыточности с учетом выходных и сезонности.',
+    planRev:'Средняя месячная выручка при плановом потоке после выхода на режим.',
+    safety:'На сколько может упасть поток от плана, прежде чем точка уйдет в убыток.',
+    rate:'Ставка вознаграждения по займу банка и по лизингу оборудования.',
+    ke:'Доходность, которую требует собственник: безрисковая ставка плюс премии за рынок, отрасль, малый размер и риск проекта.',
+    dshare:'Займ и лизинг в общей сумме инвестиций. Это вес ставки займа в WACC.',
+    wacc:'Средневзвешенная стоимость капитала: ставка займа и стоимость собственного капитала, взвешенные по долям. По ней дисконтируется поток.'
+  };
+  function delta(cur, base, fmt, kind){
+    if (cur==null || base==null || Math.abs(cur-base) < 1e-9*Math.max(1,Math.abs(base))) return '';
+    const better = kind==='less' ? cur<base : cur>base;
+    return `<div class="d"><span class="${better?'up':'dn'}">${cur>base?'▲':'▼'}</span> в модели ${fmt(base)}</div>`;
+  }
+  const BASE = E.compute();
+
+  // ---------- отрисовка ----------
+  function render(){
+    const p=read(), r=E.compute(p), k=r.kpi, b=BASE.kpi;
+    markChanged(p);
+    $('projTitle').textContent = r.p.projectName;
+    $('meta').textContent = `${nf0.format(p.area)} м² · ${nf0.format(p.checks)} чеков в будний день · открытие в ${PREP[p.launchMonth-1]} ${p.launchYear} года`;
+
+    const card = (key,v,l,cls,d) => `<div class="kpi ${cls||''}" data-k="${key}"><div class="v">${v}</div><div class="l">${l}</div>${d||''}</div>`;
+    $('kpiMain').innerHTML =
+      card('invest', mln(r.invest), 'тенге инвестиций','hero', delta(r.invest,BASE.invest,mln,'less')) +
+      card('npv', mln(k.npv), `тенге NPV при WACC ${pc(r.wacc)}`, k.npv<0?'flag':'', delta(k.npv,b.npv,mln)) +
+      card('irr', pc(k.irr), 'IRR проекта', k.irr>1?'flag':'', delta(k.irr,b.irr,pc)) +
+      card('pbp', yrs(k.pbp), 'простая окупаемость', (k.pbp==null||k.pbp<1)?'flag':'', delta(k.pbp,b.pbp,yrs,'less'));
+    $('kpiSec').innerHTML =
+      card('dpbp', yrs(k.dpbp), 'дисконтированная окупаемость','sm', delta(k.dpbp,b.dpbp,yrs,'less')) +
+      card('mirr', pc(k.mirr), 'MIRR','sm', delta(k.mirr,b.mirr,pc)) +
+      card('pi', k.pi==null?'н/д':nf2.format(k.pi), 'индекс рентабельности PI','sm', delta(k.pi,b.pi,v=>nf2.format(v))) +
+      card('rev', mln(k.steadyRev), `тенге выручки за ${k.steadyYear} год`,'sm', delta(k.steadyRev,b.steadyRev,mln));
+
+    // О проекте: только данные
+    const be = Math.ceil(k.beChecks);
+    let txt = `Помещение ${nf0.format(p.area)} м², аренда ${t0(r.rentM)} тенге в месяц. `+
+      `Плановый объем продаж ${nf0.format(p.checks)} чеков в будний день при среднем чеке ${t0(p.avgCheck)} тенге, `+
+      (p.rampMonths>1 ? `выход на план за ${nf0.format(p.rampMonths)} мес. ` : `с первого месяца работы. `)+
+      `Штат ${r.headcount} чел., постоянные расходы ${t0(r.fixedM)} тенге в месяц. `+
+      `Инвестиции ${t0(r.invest)} тенге, `+
+      (p.scheme==='debt' ? `из них собственные средства ${pc(r.own/r.invest)}, займ банка ${pc(r.loan/r.invest)}, лизинг ${pc(r.lease/r.invest)}. ` : `полностью за счет собственных средств. `)+
+      `Открытие в ${PREP[p.launchMonth-1]} ${p.launchYear} года, горизонт расчета 60 месяцев.`;
+    $('about').textContent = txt;
+
+    // инвестиции и источники
+    const cx=r.capex;
+    pie('pCapex', [['Ремонт и отделка',cx.smr],['Оборудование, мебель, ИТ',cx.equip],['Разрешения и документы',cx.docs],['Аренда до открытия',cx.prep],['Стартовый запас сырья',cx.stock],['Резерв на месяц расходов',cx.reserve]], 'инвестиции');
+    pie('pFin', [['Собственные средства',r.own],['Займ банка',r.loan],['Лизинг',r.lease]], 'источники');
+    $('autoCapex').innerHTML = `Считаются сами: аренда до открытия <b>${t0(cx.prep)}</b>, стартовый запас <b>${t0(cx.stock)}</b>, резерв на месяц постоянных расходов <b>${t0(cx.reserve)}</b>. Всего инвестиций <b>${t0(r.invest)}</b> тенге.`;
+    const D_ = r.loan+r.lease;
+    $('kpiCap').className='kpis cap';
+    $('kpiCap').innerHTML =
+      (p.scheme==='debt' ? card('rate', pc(p.rate), 'ставка займа и лизинга, годовых','sm') : card('rate','нет','заемных средств','sm')) +
+      card('ke', pc(r.ke), 'стоимость собственного капитала (CAPM)','sm') +
+      card('dshare', pc(D_/r.invest), 'доля заемных средств','sm') +
+      card('wacc', pc(r.wacc), 'WACC, ставка дисконтирования','sm hero');
+
+    // ОПиУ в стиле ФЭМ
+    const Y=r.years;
+    const rows=[
+      ['Продажи','rev','#C00000','#fff'],
+      ['Переменные расходы','varc','#FFC000'],
+      ['Валовой доход','gross','#92D050',0,1],
+      ['Постоянные расходы','fixed','#00B0F0'],
+      ['Операционный доход','opInc','#C6E0B4',0,1],
+      ['Выплата вознаграждения','intr','#F8CBAD'],
+      ['Доход до уплаты подоходного налога','ebt','#B4C6E7',0,1],
+      ['Налог с дохода','tax','#F4B083'],
+      ['Прибыль / убыток','net','#FFE598',0,1]
+    ];
+    Y.forEach(y=>{ y.ebt = y.opInc - y.intr; });
+    $('tPnl').className='fem';
+    $('tPnl').innerHTML = `<thead><tr><th>Позиция / Значение</th>${Y.map(y=>`<th>${y.y}</th>`).join('')}</tr></thead><tbody>`+
+      rows.map(([n,key,bg,fg,bold])=>`<tr class="${bold?'b':''}" style="background:${bg};${fg?'color:'+fg:''}"><td>${n}</td>${Y.map(y=>`<td>${t0(y[key])}</td>`).join('')}</tr>`).join('')+
+      `</tbody><caption>${Y.filter(y=>y.months<12).map(y=>y.months?`${y.y}: ${y.months} мес. работы`:`${y.y}: подготовительный период`).join(', ')}.</caption>`;
+
+    // чек
+    const U=[
+      ['Средний чек', t0(p.avgCheck), 'тенге', '#C00000','#fff'],
+      [`Сырье и упаковка (${pc(p.costPct)} цены)`, t0(p.avgCheck*p.costPct), 'тенге', '#FFC000'],
+      ['Эквайринг 1,1% и налог с дохода 4%', t0(p.avgCheck*(r.T.acquiring+r.T.snrRate)), 'тенге', '#F4B083'],
+      ['Маржинальный доход с чека', t0(k.marginPerCheck), 'тенге', '#92D050',0,1],
+      ['Постоянные расходы в месяц', t0(r.fixedM), 'тенге', '#00B0F0'],
+      ['в т.ч. фонд оплаты труда с налогами', t0(r.fot), 'тенге', '#BDD7EE'],
+      ['Точка безубыточности', nf0.format(be), 'чеков в будний день', '#FFE598',0,1],
+      [`Запас прочности к плану ${nf0.format(p.checks)} чеков`, pc(1-k.beChecks/p.checks), '%', '#C6E0B4',0,1]
+    ];
+    $('tUnit').innerHTML = `<thead><tr><th>Показатель</th><th>Значение</th><th style="text-align:left">Ед. изм.</th></tr></thead><tbody>`+
+      U.map(([n,v,u,bg,fg,bold])=>`<tr class="${bold?'b':''}" style="background:${bg};${fg?'color:'+fg:''}"><td>${n}</td><td>${v}</td><td style="text-align:left">${u}</td></tr>`).join('')+`</tbody>`;
+
+    document.querySelectorAll('.kpi').forEach(c=>{
+      c.addEventListener('mousemove',ev=>showTip(KPI_HELP[c.dataset.k],ev));
+      c.addEventListener('mouseleave',hideTip);
+    });
+    const beRev = k.beChecks*p.avgCheck*k.monthFactor, planRev = p.checks*p.avgCheck*k.monthFactor;
+    $('kpiBE').innerHTML =
+      card('be', nf0.format(be), 'чеков в будний день','sm hero') +
+      card('beRev', mln(beRev), 'тенге выручки в месяц','sm') +
+      card('planRev', mln(planRev), 'тенге выручки в месяц на плане','sm') +
+      card('safety', pc(1-k.beChecks/p.checks), 'запас прочности', k.beChecks>p.checks?'sm flag':'sm');
+    beChart(r,p);
+    yearsChart(r); cumChart(r);
+  }
+
+  // ---------- события ----------
+  fill(D);
+  $('fbody').addEventListener('input', ev=>{
+    const t=ev.target;
+    if (t.type==='range'){ const id=t.id.slice(0,-2); $(id).value = nfIn.format(+t.value); }
+    else if (t.id && $(t.id+'_r')){ const v=parseIn(t.value); if (isFinite(v)) $(t.id+'_r').value=v; }
+    render();
+  });
+  $('fbody').addEventListener('change', render);
+  $('fbody').addEventListener('focusout', ev=>{ const t=ev.target; if (t.type==='text'){ const v=parseIn(t.value); if (isFinite(v)) t.value=nfIn.format(v); } });
+  $('fbody').addEventListener('click', ev=>{
+    const s=ev.target.closest('#scheme button'); if (s){ scheme=s.dataset.v; render(); return; }
+    const r=ev.target.closest('.rst'); if (!r) return;
+    const id=r.dataset.reset, p=read();
+    if (id==='launch'){ p.launchMonth=D.launchMonth; p.launchYear=D.launchYear; }
+    else if (id==='scheme') p.scheme=D.scheme;
+    else if (id==='mgr'){ p.managers=D.managers; p.managerSalary=D.managerSalary; }
+    else if (id==='bar'){ p.baristas=D.baristas; p.baristaSalary=D.baristaSalary; }
+    else p[id]=D[id];
+    fill(p); render();
+  });
+  $('reset').addEventListener('click', ()=>{ fill(D); render(); });
+  const app=document.querySelector('.app');
+  const setCollapsed=c=>{ app.classList.toggle('collapsed',c); try{ localStorage.setItem('onepagerCollapsed',c?'1':''); }catch(e){} setTimeout(()=>render(),0); };
+  $('hideForm').addEventListener('click',()=>setCollapsed(true));
+  $('showForm').addEventListener('click',()=>{ setCollapsed(false); window.scrollTo({top:0,behavior:'smooth'}); });
+  try{ if(localStorage.getItem('onepagerCollapsed')) app.classList.add('collapsed'); }catch(e){}
+  render();
+})();
+</script></body></html>
